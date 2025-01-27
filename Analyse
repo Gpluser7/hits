@@ -1,0 +1,53 @@
+import ccxt
+from datetime import datetime, timedelta
+
+def fetch_historical_data(symbol, timeframe, since, limit=500):
+    """
+    Завантажує історичні дані для вибраної криптовалюти.
+    """
+    exchange = ccxt.binance()
+    data = exchange.fetch_ohlcv(symbol, timeframe, since, limit)
+    return data
+
+def calculate_percentage_change(data, percentage):
+    """
+    Визначає час, за який ціна змінилася на певний відсоток.
+    """
+    results = []
+    for i in range(len(data)):
+        start_price = data[i][1]  # Відкриття
+        start_time = data[i][0]  # Час відкриття
+        
+        for j in range(i + 1, len(data)):
+            current_price = data[j][1]  # Відкриття на наступних кроках
+            change = abs((current_price - start_price) / start_price * 100)
+            
+            if change >= percentage:
+                results.append({
+                    "start_time": datetime.utcfromtimestamp(start_time / 1000),
+                    "end_time": datetime.utcfromtimestamp(data[j][0] / 1000),
+                    "change": change,
+                    "duration": (data[j][0] - start_time) / 1000  # Тривалість у секундах
+                })
+                break
+    return results
+
+def main():
+    symbol = "BTC/USDT"  # Вибір пари
+    timeframe = "1h"     # Вибір інтервалу (1 година)
+    days_back = 30       # Завантажуємо дані за останні 30 днів
+    percentage = 5       # Зміна на 5%
+
+    since = int((datetime.now() - timedelta(days=days_back)).timestamp() * 1000)
+    data = fetch_historical_data(symbol, timeframe, since)
+
+    results = calculate_percentage_change(data, percentage)
+    
+    for res in results:
+        print(f"Ціна змінилася на {percentage}%:")
+        print(f"- Початок: {res['start_time']}")
+        print(f"- Кінець: {res['end_time']}")
+        print(f"- Тривалість: {res['duration']} секунд\n")
+
+if __name__ == "__main__":
+    main()
